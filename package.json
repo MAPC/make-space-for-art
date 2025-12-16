@@ -1,0 +1,30 @@
+{
+  "name": "make-space-for-art",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:server": "node server.js",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node server.js",
+    "heroku-postbuild": "npm run build"
+  },
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "express": "^4.18.2",
+    "mapbox-gl": "^3.13.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-map-gl": "^7.0.10",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^7.7.0",
+    "recharts": "^2.10.3"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.0.8"
+  }
+}

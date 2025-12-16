@@ -1,0 +1,43 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+.app-header {
+  background: #4a90e2;
+  color: white;
+  padding: 20px 30px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.app-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.map-container {
+  width: 80%;
+  height: 100%;
+  position: relative;
+}
+
+.panel-container {
+  width: 20%;
+  height: 100%;
+  background: #ffffff;
+  border-left: 1px solid #e0e0e0;
+  overflow-y: auto;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+}
