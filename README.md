@@ -35,6 +35,9 @@ npm install
    - Create a `.env` file in the root directory
    - Add your Mapbox access token: `VITE_MAPBOX_ACCESS_TOKEN=your_token_here`
    - Get your token from [Mapbox](https://account.mapbox.com/access-tokens/)
+   - Add the airtable service url: `VITE_FEATURE_SERVICE_UR=the_airtable_service_url`
+  
+   Please search the title `.env for make space for art `  on dashlane for the environment variables 
 
 3. Start the development servers:
 
@@ -65,7 +68,6 @@ npm start
 ## Deployment
 
 This application is configured for Heroku deployment:
-
 
 1. Deploy:
 ```bash
