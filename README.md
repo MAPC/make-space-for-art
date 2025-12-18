@@ -73,8 +73,9 @@ This application is configured for Heroku deployment:
 ```bash
 git push heroku main
 ```
-
 The `heroku-postbuild` script will automatically build the application before deployment.
+This is published website [link](https://make-space-for-art-61278629e27d.herokuapp.com/) 
+Note: We also set up a custom domain; however, this URL does not currently have an SSL certificate and is only accessible over HTTP (http://makespaceforart.mapc.org/).
 
 ## Data Sources
 
@@ -118,5 +119,4 @@ All data is fetched dynamically and displayed on the interactive map with filter
 - **Interact with Map**: 
   - Click markers to view detailed information in popups
   - Use zoom controls to navigate the map
-  - Change map style using the style selector
 - **Explore Data Table**: Expand the data table at the bottom to view all data, sort by columns, and click rows to highlight corresponding markers on the map
