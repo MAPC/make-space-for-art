@@ -71,7 +71,7 @@ function MetricsPanel({
   return (
     <div className="metrics-panel">
       <div className="panel-header">
-        <h2>Arts Spaces</h2>
+        <h2>Creative Spaces</h2>
       </div>
       
       <div className="panel-content">

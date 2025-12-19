@@ -29,6 +29,8 @@
   font-size: 12px;
   color: #666;
   transition: transform 0.2s;
+  display: inline-flex;
+  align-items: center;
 }
 
 .table-container {
@@ -97,12 +99,13 @@
 
 .sort-icon {
   margin-left: 6px;
-  font-size: 10px;
+  font-size: 12px;
   color: #999;
-  font-weight: normal;
   opacity: 0.6;
   transition: opacity 0.2s, color 0.2s;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
 }
 
 .data-table th.sortable-header:hover .sort-icon {
@@ -110,10 +113,9 @@
   color: #4a90e2;
 }
 
-.data-table th.sortable-header .sort-icon {
+.data-table th.sortable-header .sort-icon.active {
   color: #4a90e2;
   opacity: 1;
-  font-weight: bold;
 }
 
 .sort-indicator {

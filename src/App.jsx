@@ -153,7 +153,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Neighborhood Art Spaces</h1>
+        <h1>Neighborhood Creative Spaces</h1>
       </header>
       <div className="app-content">
         <div className="map-container">
@@ -163,6 +163,7 @@ function App() {
             selectedFeature={selectedTableRow}
             onMarkerSelect={setSelectedTableRow}
             selectedCity={selectedCity}
+            selectedNeighborhood={selectedNeighborhood}
           />
         </div>
         <div className="panel-container">
@@ -186,7 +187,13 @@ function App() {
           onClick={() => setIsTableExpanded(!isTableExpanded)}
         >
           <span>Data Table</span>
-          <span className="toggle-icon">{isTableExpanded ? '▼' : '▶'}</span>
+          <span className="toggle-icon">
+            {isTableExpanded ? (
+              <i className="fas fa-chevron-down"></i>
+            ) : (
+              <i className="fas fa-chevron-right"></i>
+            )}
+          </span>
         </button>
         
         {isTableExpanded && (
@@ -207,11 +214,15 @@ function App() {
                       >
                         <span className="header-content">
                           {key}
-                          <span className="sort-icon">
+                          <span className={`sort-icon ${sortConfig.key === key ? 'active' : ''}`}>
                             {sortConfig.key === key ? (
-                              sortConfig.direction === 'asc' ? ' ▲' : ' ▼'
+                              sortConfig.direction === 'asc' ? (
+                                <i className="fas fa-sort-up"></i>
+                              ) : (
+                                <i className="fas fa-sort-down"></i>
+                              )
                             ) : (
-                              ' ↕'
+                              <i className="fas fa-sort"></i>
                             )}
                           </span>
                         </span>

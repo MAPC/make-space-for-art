@@ -4,7 +4,7 @@ import { fetchNeighborhoodData } from '../utils/arcgis'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import './Map.css'
 
-function MapComponent({ data, loading, selectedFeature, onMarkerSelect, selectedCity }) {
+function MapComponent({ data, loading, selectedFeature, onMarkerSelect, selectedCity, selectedNeighborhood }) {
   const [viewState, setViewState] = useState({
     longitude: -74.0060,
     latitude: 40.7128,
@@ -218,9 +218,9 @@ function MapComponent({ data, loading, selectedFeature, onMarkerSelect, selected
     }
   }, [massachusettsGeoJSON, data])
 
-  // Zoom to selected city polygon when city is selected
+  // Zoom to selected city polygon when city is selected (only if no neighborhood is selected)
   useEffect(() => {
-    if (!selectedCity || !highlightedCities?.features) return
+    if (!selectedCity || !highlightedCities?.features || selectedNeighborhood) return
 
     // Find the polygon for the selected city
     const cityPolygon = highlightedCities.features.find(feature => {
@@ -241,7 +241,55 @@ function MapComponent({ data, loading, selectedFeature, onMarkerSelect, selected
         }
       }
     }
-  }, [selectedCity, highlightedCities])
+  }, [selectedCity, highlightedCities, selectedNeighborhood])
+
+  // Zoom to selected neighborhood polygon when neighborhood is selected
+  useEffect(() => {
+    if (!selectedNeighborhood || !selectedCity) return
+
+    // Determine which neighborhood data to use based on selected city
+    let neighborhoodData = null
+    if (selectedCity.toUpperCase().trim() === 'BOSTON' && bostonNeighborhoods) {
+      neighborhoodData = bostonNeighborhoods
+    } else if (selectedCity.toUpperCase().trim() === 'CAMBRIDGE' && cambridgeNeighborhoods) {
+      neighborhoodData = cambridgeNeighborhoods
+    } else if (selectedCity.toUpperCase().trim() === 'SOMERVILLE' && somervilleNeighborhoods) {
+      neighborhoodData = somervilleNeighborhoods
+    }
+
+    if (!neighborhoodData?.features) return
+
+    // Find the neighborhood polygon - try multiple possible property names
+    const neighborhoodPolygon = neighborhoodData.features.find(feature => {
+      const props = feature.properties || {}
+      // Try common property names for neighborhood
+      const neighborhoodName = props.name || 
+                              props.neighborhood || 
+                              props.NAME || 
+                              props.NEIGHBORHOOD ||
+                              props.Neighborhood ||
+                              props.Name ||
+                              ''
+      
+      if (!neighborhoodName) return false
+      return neighborhoodName.toUpperCase().trim() === selectedNeighborhood.toUpperCase().trim()
+    })
+
+    if (neighborhoodPolygon && neighborhoodPolygon.geometry) {
+      const coords = extractCoordinates(neighborhoodPolygon.geometry)
+      if (coords.length > 0) {
+        const bounds = calculateBounds(coords)
+        // Use a higher zoom level for neighborhoods (they're smaller than cities)
+        if (bounds) {
+          setViewState(prev => ({
+            ...prev,
+            ...bounds,
+            zoom: Math.max(bounds.zoom, 14) // Ensure at least zoom level 14 for neighborhoods
+          }))
+        }
+      }
+    }
+  }, [selectedNeighborhood, selectedCity, bostonNeighborhoods, cambridgeNeighborhoods, somervilleNeighborhoods])
 
   const handleMarkerClick = useCallback((feature, event) => {
     event.originalEvent.stopPropagation()
@@ -494,24 +542,68 @@ function MapComponent({ data, loading, selectedFeature, onMarkerSelect, selected
               )}
               <table className="popup-table">
                 <tbody>
-                  {Object.entries((selectedFeature || selectedMarker).properties || {})
-                    .filter(([key, value]) => value !== null && value !== undefined && value !== '')
-                    .map(([key, value], index) => {
-                      // Format the value
-                      let displayValue = value
-                      if (typeof value === 'object') {
-                        displayValue = JSON.stringify(value)
-                      } else {
-                        displayValue = String(value)
-                      }
-                      
-                      return (
-                        <tr key={`${key}-${index}`}>
-                          <td className="popup-label">{key}:</td>
-                          <td className="popup-value">{displayValue}</td>
-                        </tr>
-                      )
-                    })}
+                  {(() => {
+                    const props = (selectedFeature || selectedMarker).properties || {}
+                    const fieldsToShow = ['name', 'full_address', 'url']
+                    
+                    // Display labels mapping
+                    const displayLabels = {
+                      'name': 'Name',
+                      'full_address': 'Address',
+                      'url': 'Website Link'
+                    }
+                    
+                    return fieldsToShow
+                      .map(fieldName => {
+                        // Find the property key (case-insensitive match)
+                        const propKey = Object.keys(props).find(
+                          key => key.toLowerCase() === fieldName.toLowerCase()
+                        )
+                        
+                        if (!propKey) return null
+                        
+                        const value = props[propKey]
+                        if (value === null || value === undefined || value === '') return null
+                        
+                        // Format the value
+                        let displayValue = value
+                        if (typeof value === 'object') {
+                          displayValue = JSON.stringify(value)
+                        } else {
+                          displayValue = String(value)
+                        }
+                        
+                        // Check if this is a URL field and make it clickable
+                        const isUrlField = fieldName.toLowerCase() === 'url'
+                        let valueContent = displayValue
+                        
+                        if (isUrlField) {
+                          // Ensure URL has protocol
+                          let url = displayValue.trim()
+                          if (!url.match(/^https?:\/\//i)) {
+                            url = 'https://' + url
+                          }
+                          valueContent = (
+                            <a 
+                              href={url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="popup-link"
+                            >
+                              {displayValue}
+                            </a>
+                          )
+                        }
+                        
+                        return (
+                          <tr key={fieldName}>
+                            <td className="popup-label">{displayLabels[fieldName]}:</td>
+                            <td className="popup-value">{valueContent}</td>
+                          </tr>
+                        )
+                      })
+                      .filter(Boolean)
+                  })()}
                 </tbody>
               </table>
             </div>

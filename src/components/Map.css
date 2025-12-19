@@ -200,6 +200,22 @@
   white-space: normal;
 }
 
+.popup-link {
+  color: #4a90e2;
+  text-decoration: underline;
+  cursor: pointer;
+  word-break: break-all;
+}
+
+.popup-link:hover {
+  color: #357abd;
+  text-decoration: none;
+}
+
+.popup-link:visited {
+  color: #6b46c1;
+}
+
 .map-style-control {
   position: absolute;
   top: 10px;
