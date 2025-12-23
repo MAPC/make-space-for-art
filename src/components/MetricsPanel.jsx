@@ -2,7 +2,22 @@ import { useMemo } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 import './MetricsPanel.css'
 
-const COLORS = ['#4a90e2', '#50c878', '#ff6b6b', '#ffa500', '#9b59b6', '#1abc9c', '#e74c3c', '#3498db']
+// Color mapping to match map marker colors
+// Colors are designed to meet WCAG AA contrast ratio (3:1) against white background
+// Reference: https://webaim.org/resources/contrastchecker/
+const getTypeColor = (typeName) => {
+  const name = typeName.toLowerCase()
+  if (name.includes('presentation') && name.includes('production')) {
+    return '#663399' // Dark purple for both - meets WCAG AA
+  } else if (name.includes('presentation')) {
+    return '#0066CC' // Dark blue for presentation - meets WCAG AA
+  } else if (name.includes('production')) {
+    return '#008844' // Dark green for production - meets WCAG AA
+  } else if (name.includes('unknown')) {
+    return '#CC6600' // Dark orange for unknown - meets WCAG AA
+  }
+  return '#CC6600' // Default dark orange for unknown
+}
 
 function MetricsPanel({
   data,
@@ -10,30 +25,13 @@ function MetricsPanel({
   neighborhoods,
   selectedCity,
   selectedNeighborhood,
+  selectedType,
   onCityChange,
   onNeighborhoodChange,
+  onTypeChange,
   loading
 }) {
   const totalSpaces = data.length
-
-  // Calculate review states distribution
-  const reviewStateData = useMemo(() => {
-    const counts = {}
-    data.forEach(feature => {
-      const reviewState = feature.properties?.review_state || 
-                         feature.properties?.reviewState || 
-                         feature.properties?.review_status ||
-                         feature.properties?.reviewStatus ||
-                         feature.properties?.status ||
-                         feature.properties?.Status ||
-                         'Unknown'
-      const state = String(reviewState).trim() || 'Unknown'
-      counts[state] = (counts[state] || 0) + 1
-    })
-    return Object.entries(counts)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-  }, [data])
 
   // Calculate share of spaces by type (production, presentation, or both)
   const typeData = useMemo(() => {
@@ -112,6 +110,21 @@ function MetricsPanel({
           </select>
         </div>
 
+        <div className="filter-section">
+          <label className="filter-label">Type</label>
+          <select
+            className="filter-select"
+            value={selectedType}
+            onChange={(e) => onTypeChange(e.target.value)}
+          >
+            <option value="">All Types</option>
+            <option value="presentation">Presentation</option>
+            <option value="production">Production</option>
+            <option value="both">Production and Presentation</option>
+            <option value="unknown">Unknown</option>
+          </select>
+        </div>
+
         {selectedCity && (
           <div className="metric-card">
             <div className="metric-label">Spaces in {selectedCity}</div>
@@ -126,21 +139,6 @@ function MetricsPanel({
             <div className="metric-label">Spaces in {selectedNeighborhood}</div>
             <div className="metric-value">
               {data.filter(f => f.properties?.neighborhood === selectedNeighborhood).length}
-            </div>
-          </div>
-        )}
-
-        {/* Review States Metric */}
-        {reviewStateData.length > 0 && (
-          <div className="metric-card">
-            <div className="metric-label">Review States</div>
-            <div className="review-states-list">
-              {reviewStateData.map((item, index) => (
-                <div key={item.name} className="review-state-item">
-                  <span className="review-state-name">{item.name}:</span>
-                  <span className="review-state-value">{item.value}</span>
-                </div>
-              ))}
             </div>
           </div>
         )}
@@ -179,7 +177,7 @@ function MetricsPanel({
                   isAnimationActive={false}
                 >
                   {typeData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={getTypeColor(entry.name)} />
                   ))}
                 </Pie>
                 <Tooltip 
@@ -202,7 +200,7 @@ function MetricsPanel({
                   <div key={item.name} className="legend-item">
                     <span 
                       className="legend-color" 
-                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                      style={{ backgroundColor: getTypeColor(item.name) }}
                     ></span>
                     <span className="legend-label">
                       {item.name}: {item.value} ({percentage}%)

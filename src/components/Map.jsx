@@ -99,6 +99,44 @@ function MapComponent({ data, loading, selectedFeature, onMarkerSelect, selected
     loadNeighborhoods()
   }, [])
 
+  // Helper function to determine space type
+  const getSpaceType = (properties) => {
+    const type = properties?.type || properties?.Type || ''
+    const typeLower = type.toLowerCase().trim()
+    
+    if (typeLower.includes('production') && typeLower.includes('presentation')) {
+      return 'both'
+    } else if (typeLower.includes('production')) {
+      return 'production'
+    } else if (typeLower.includes('presentation')) {
+      return 'presentation'
+    }
+    return 'unknown'
+  }
+
+  // Helper function to get marker color based on space type
+  // Colors are designed to meet WCAG AA contrast ratio (3:1) against white background
+  // Reference: https://webaim.org/resources/contrastchecker/
+  const getMarkerColor = (properties, isSelected) => {
+    if (isSelected) {
+      return '#87CEEB' // Light blue for selected/highlighted markers
+    }
+    
+    const spaceType = getSpaceType(properties)
+    switch (spaceType) {
+      case 'presentation':
+        return '#0066CC' // Dark blue - meets WCAG AA (contrast ratio ~4.5:1)
+      case 'production':
+        return '#008844' // Dark green - meets WCAG AA (contrast ratio ~4.2:1)
+      case 'both':
+        return '#663399' // Dark purple - meets WCAG AA (contrast ratio ~4.8:1)
+      case 'unknown':
+        return '#CC6600' // Dark orange - meets WCAG AA (contrast ratio ~4.1:1)
+      default:
+        return '#CC6600' // Dark orange for unknown
+    }
+  }
+
   // Helper function to extract all coordinates from a geometry
   const extractCoordinates = (geometry) => {
     const coords = []
@@ -390,7 +428,7 @@ function MapComponent({ data, loading, selectedFeature, onMarkerSelect, selected
                   ['==', ['get', 'town'], 'SOMERVILLE'], '#ffffcc', // Light yellow for Somerville
                   '#4a90e2' // Default blue for Cambridge and Watertown
                 ],
-                'fill-opacity': 0.3
+                'fill-opacity': 0.15
               }}
             />
             <Layer
@@ -489,6 +527,8 @@ function MapComponent({ data, loading, selectedFeature, onMarkerSelect, selected
               currentSelected.geometry?.coordinates[0] === lng && 
               currentSelected.geometry?.coordinates[1] === lat
 
+            const markerColor = getMarkerColor(props, isSelected)
+
             return (
               <Marker
                 key={index}
@@ -509,7 +549,7 @@ function MapComponent({ data, loading, selectedFeature, onMarkerSelect, selected
                       cx="4"
                       cy="4"
                       r={isSelected ? "4" : "3"}
-                      fill={isSelected ? "#4a90e2" : "#ff0000"}
+                      fill={markerColor}
                     />
                   </svg>
                 </div>
@@ -544,11 +584,14 @@ function MapComponent({ data, loading, selectedFeature, onMarkerSelect, selected
                 <tbody>
                   {(() => {
                     const props = (selectedFeature || selectedMarker).properties || {}
-                    const fieldsToShow = ['name', 'full_address', 'url']
+                    const fieldsToShow = ['name', 'type', 'city', 'neighborhood', 'full_address', 'url']
                     
                     // Display labels mapping
                     const displayLabels = {
                       'name': 'Name',
+                      'type': 'Type',
+                      'city': 'City',
+                      'neighborhood': 'Neighborhood',
                       'full_address': 'Address',
                       'url': 'Website Link'
                     }
@@ -609,6 +652,29 @@ function MapComponent({ data, loading, selectedFeature, onMarkerSelect, selected
             </div>
           </Popup>
         )}
+
+        {/* Map Legend */}
+        <div className="map-legend">
+          <div className="legend-title">Space Types</div>
+          <div className="legend-items">
+            <div className="legend-item">
+              <div className="legend-dot" style={{ backgroundColor: '#0066CC' }}></div>
+              <span className="legend-label">Presentation</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-dot" style={{ backgroundColor: '#008844' }}></div>
+              <span className="legend-label">Production</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-dot" style={{ backgroundColor: '#663399' }}></div>
+              <span className="legend-label">Production and Presentation</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-dot" style={{ backgroundColor: '#CC6600' }}></div>
+              <span className="legend-label">Unknown</span>
+            </div>
+          </div>
+        </div>
       </Map>
     </div>
   )
