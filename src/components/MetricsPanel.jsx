@@ -8,13 +8,13 @@ import './MetricsPanel.css'
 const getTypeColor = (typeName) => {
   const name = typeName.toLowerCase()
   if (name.includes('presentation') && name.includes('production')) {
-    return '#663399' // Dark purple for both - meets WCAG AA
+    return '#663399' // Dark purple for both 
   } else if (name.includes('presentation')) {
-    return '#0066CC' // Dark blue for presentation - meets WCAG AA
+    return '#0066CC' // Dark blue for presentation 
   } else if (name.includes('production')) {
-    return '#008844' // Dark green for production - meets WCAG AA
+    return '#008844' // Dark green for production 
   } else if (name.includes('unknown')) {
-    return '#CC6600' // Dark orange for unknown - meets WCAG AA
+    return '#CC6600' // Dark orange for unknown
   }
   return '#CC6600' // Default dark orange for unknown
 }

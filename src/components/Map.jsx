@@ -240,10 +240,14 @@ function MapComponent({ data, loading, selectedFeature, onMarkerSelect, selected
     }
 
     // Filter Massachusetts features to only include cities that exist in the data
+    // Exclude Watertown from boundaries
     const matchingFeatures = massachusettsGeoJSON.features.filter(feature => {
       const townName = feature.properties?.town
       if (!townName) return false
-      return citiesFromData.has(townName.toUpperCase().trim())
+      const townUpper = townName.toUpperCase().trim()
+      // Exclude Watertown
+      if (townUpper === 'WATERTOWN') return false
+      return citiesFromData.has(townUpper)
     })
 
     if (matchingFeatures.length > 0) {
@@ -426,7 +430,7 @@ function MapComponent({ data, loading, selectedFeature, onMarkerSelect, selected
                   'case',
                   ['==', ['get', 'town'], 'BOSTON'], '#ffcccc', // Light red for Boston
                   ['==', ['get', 'town'], 'SOMERVILLE'], '#ffffcc', // Light yellow for Somerville
-                  '#4a90e2' // Default blue for Cambridge and Watertown
+                  '#4a90e2' // Default blue for Cambridge
                 ],
                 'fill-opacity': 0.15
               }}
