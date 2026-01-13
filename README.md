@@ -33,7 +33,7 @@ npm install
    - Create a `.env` file in the root directory
    - Add your Mapbox access token: `VITE_MAPBOX_ACCESS_TOKEN=your_token_here`
    - Get your token from [Mapbox](https://account.mapbox.com/access-tokens/)
-   - Add the airtable service url: `VITE_FEATURE_SERVICE_UR=the_airtable_service_url`
+   - Add a Feature Service URL to sync art spaces from Airtable to the map: `VITE_FEATURE_SERVICE_UR=the_airtable_synced_map_service_url`
   
    Please search the title `.env for make space for art `  on dashlane for the environment variables 
 
@@ -79,7 +79,7 @@ Note: We also set up a custom domain; however, this URL does not currently have 
 
 The application uses the following data sources:
 
-- **Arts Spaces Data**: ArcGIS Feature Service containing arts space locations and attributes, and this feature service is synced with art spaces information in the airtable base. 
+- **Creative Spaces Data**: ArcGIS Feature Service containing arts space locations and attributes, and this feature service is synced with art spaces information in the airtable base. 
 - **Massachusetts Boundaries**: GeoJSON file with Massachusetts city/town boundaries
 - **Neighborhood Boundaries**: ArcGIS Feature Services for Boston, Cambridge, and Somerville neighborhoods
 
