@@ -1,4 +1,4 @@
-# Make Space for Art - Arts Spaces Map
+# Make Space for Art - Creative Spaces Map
 
 A React application that visualizes arts spaces on an interactive map with filtering, statistics, and data visualization capabilities.
 
