@@ -11,6 +11,8 @@ function MapComponent({ data, loading, selectedFeature, onMarkerSelect, selected
     zoom: 12
   })
   const [selectedMarker, setSelectedMarker] = useState(null)
+  const [overlappingFeatures, setOverlappingFeatures] = useState([])
+  const [selectedOverlapIndex, setSelectedOverlapIndex] = useState(0)
   const [mapError, setMapError] = useState(null)
   const [mapboxToken, setMapboxToken] = useState(null)
   const [highlightedCities, setHighlightedCities] = useState(null)
@@ -157,6 +159,59 @@ function MapComponent({ data, loading, selectedFeature, onMarkerSelect, selected
     
     return coords
   }
+
+  // Helper function to get marker coordinates from any geometry type
+  const getMarkerCoordinates = (geometry) => {
+    if (!geometry) return null
+    
+    if (geometry.type === 'Point') {
+      if (geometry.coordinates && Array.isArray(geometry.coordinates) && geometry.coordinates.length >= 2) {
+        return geometry.coordinates
+      }
+    } else if (geometry.type === 'Polygon' || geometry.type === 'MultiPolygon') {
+      // Extract all coordinates and calculate centroid
+      const coords = extractCoordinates(geometry)
+      if (coords.length > 0) {
+        // Calculate centroid (average of all coordinates)
+        const lons = coords.map(c => c[0]).filter(val => val != null)
+        const lats = coords.map(c => c[1]).filter(val => val != null)
+        if (lons.length > 0 && lats.length > 0) {
+          const avgLon = lons.reduce((sum, val) => sum + val, 0) / lons.length
+          const avgLat = lats.reduce((sum, val) => sum + val, 0) / lats.length
+          return [avgLon, avgLat]
+        }
+        // Fallback: use first coordinate
+        if (coords[0] && coords[0].length >= 2) {
+          return coords[0]
+        }
+      }
+    }
+    
+    return null
+  }
+
+  // Debug: Log features with invalid coordinates
+  useEffect(() => {
+    if (data.length > 0) {
+      const invalidFeatures = data.filter(feature => {
+        const coords = getMarkerCoordinates(feature.geometry)
+        return !coords || coords.length < 2
+      })
+      
+      if (invalidFeatures.length > 0) {
+        console.group('⚠️ Features with invalid coordinates:')
+        invalidFeatures.forEach(feature => {
+          const name = feature.properties?.name || feature.properties?.Name || 'Unknown'
+          const city = feature.properties?.city || feature.properties?.City || 'Unknown'
+          const neighborhood = feature.properties?.neighborhood || feature.properties?.Neighborhood || 'Unknown'
+          const geometryType = feature.geometry?.type || 'No geometry'
+          console.log(`- Name: "${name}" | City: ${city} | Neighborhood: ${neighborhood} | Geometry Type: ${geometryType}`)
+          console.log('  Geometry:', feature.geometry)
+        })
+        console.groupEnd()
+      }
+    }
+  }, [data])
 
   // Calculate bounds from coordinates
   const calculateBounds = (coordinates) => {
@@ -333,21 +388,69 @@ function MapComponent({ data, loading, selectedFeature, onMarkerSelect, selected
     }
   }, [selectedNeighborhood, selectedCity, bostonNeighborhoods, cambridgeNeighborhoods, somervilleNeighborhoods])
 
+  // Helper function to check if two coordinates are the same (with small tolerance)
+  const areCoordinatesSame = (coords1, coords2, tolerance = 0.0001) => {
+    if (!coords1 || !coords2 || coords1.length < 2 || coords2.length < 2) return false
+    return Math.abs(coords1[0] - coords2[0]) < tolerance && Math.abs(coords1[1] - coords2[1]) < tolerance
+  }
+
   const handleMarkerClick = useCallback((feature, event) => {
     event.originalEvent.stopPropagation()
-    setSelectedMarker(feature)
-    if (onMarkerSelect) {
-      onMarkerSelect(feature)
+    
+    // Find all features at the same coordinates
+    const clickedCoords = getMarkerCoordinates(feature.geometry)
+    if (!clickedCoords) return
+    
+    const overlapping = data.filter(f => {
+      const coords = getMarkerCoordinates(f.geometry)
+      return coords && areCoordinatesSame(coords, clickedCoords)
+    })
+    
+    if (overlapping.length > 1) {
+      // Multiple features at same location - show scrollable list
+      setOverlappingFeatures(overlapping)
+      setSelectedOverlapIndex(0)
+      setSelectedMarker(overlapping[0])
+      if (onMarkerSelect) {
+        onMarkerSelect(overlapping[0])
+      }
+    } else {
+      // Single feature - normal behavior
+      setOverlappingFeatures([])
+      setSelectedOverlapIndex(0)
+      setSelectedMarker(feature)
+      if (onMarkerSelect) {
+        onMarkerSelect(feature)
+      }
     }
-  }, [onMarkerSelect])
+  }, [onMarkerSelect, data])
 
   // Sync selectedFeature prop with selectedMarker state
   useEffect(() => {
     if (selectedFeature) {
       setSelectedMarker(selectedFeature)
-      // Pan to selected feature
-      if (selectedFeature.geometry?.type === 'Point' && selectedFeature.geometry.coordinates) {
-        const [lng, lat] = selectedFeature.geometry.coordinates
+      
+      // Check if there are overlapping features at this location
+      const coords = getMarkerCoordinates(selectedFeature.geometry)
+      if (coords) {
+        const overlapping = data.filter(f => {
+          const fCoords = getMarkerCoordinates(f.geometry)
+          return fCoords && areCoordinatesSame(fCoords, coords)
+        })
+        
+        if (overlapping.length > 1) {
+          const index = overlapping.findIndex(f => f === selectedFeature)
+          setOverlappingFeatures(overlapping)
+          setSelectedOverlapIndex(index >= 0 ? index : 0)
+        } else {
+          setOverlappingFeatures([])
+          setSelectedOverlapIndex(0)
+        }
+      }
+      
+      // Pan to selected feature - handle all geometry types
+      if (coords && coords.length >= 2) {
+        const [lng, lat] = coords
         setViewState(prev => ({
           ...prev,
           longitude: lng,
@@ -355,8 +458,12 @@ function MapComponent({ data, loading, selectedFeature, onMarkerSelect, selected
           zoom: Math.max(prev.zoom, 14) // Zoom in if needed
         }))
       }
+    } else {
+      // Clear overlapping features when selection is cleared
+      setOverlappingFeatures([])
+      setSelectedOverlapIndex(0)
     }
-  }, [selectedFeature])
+  }, [selectedFeature, data])
 
   if (!mapboxToken) {
     return (
@@ -521,141 +628,185 @@ function MapComponent({ data, loading, selectedFeature, onMarkerSelect, selected
           </Source>
         )}
 
-        {/* Markers for each space */}
+        {/* Markers for each space - display all features with valid geometry */}
         {data.map((feature, index) => {
-          if (feature.geometry?.type === 'Point' && feature.geometry.coordinates) {
-            const [lng, lat] = feature.geometry.coordinates
-            const props = feature.properties || {}
-            const currentSelected = selectedFeature || selectedMarker
-            const isSelected = currentSelected && 
-              currentSelected.geometry?.coordinates[0] === lng && 
-              currentSelected.geometry?.coordinates[1] === lat
+          const markerCoords = getMarkerCoordinates(feature.geometry)
+          if (!markerCoords || markerCoords.length < 2) return null
+          
+          const [lng, lat] = markerCoords
+          const props = feature.properties || {}
+          const currentSelected = selectedFeature || selectedMarker
+          
+          // Check if this feature is selected (compare by feature reference or coordinates)
+          const isSelected = currentSelected && (
+            currentSelected === feature ||
+            (currentSelected.geometry && 
+             getMarkerCoordinates(currentSelected.geometry) &&
+             getMarkerCoordinates(currentSelected.geometry)[0] === lng && 
+             getMarkerCoordinates(currentSelected.geometry)[1] === lat)
+          )
 
-            const markerColor = getMarkerColor(props, isSelected)
+          const markerColor = getMarkerColor(props, isSelected)
 
-            return (
-              <Marker
-                key={index}
-                longitude={lng}
-                latitude={lat}
-                anchor="center"
-                onClick={(e) => handleMarkerClick(feature, e)}
-              >
-                <div className={`custom-marker ${isSelected ? 'highlighted' : ''}`}>
-                  <svg
-                    width={isSelected ? "12" : "8"}
-                    height={isSelected ? "12" : "8"}
-                    viewBox="0 0 8 8"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <circle
-                      cx="4"
-                      cy="4"
-                      r={isSelected ? "4" : "3"}
-                      fill={markerColor}
-                    />
-                  </svg>
-                </div>
-              </Marker>
-            )
-          }
-          return null
+          return (
+            <Marker
+              key={index}
+              longitude={lng}
+              latitude={lat}
+              anchor="center"
+              onClick={(e) => handleMarkerClick(feature, e)}
+            >
+              <div className={`custom-marker ${isSelected ? 'highlighted' : ''}`}>
+                <svg
+                  width={isSelected ? "12" : "8"}
+                  height={isSelected ? "12" : "8"}
+                  viewBox="0 0 8 8"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <circle
+                    cx="4"
+                    cy="4"
+                    r={isSelected ? "4" : "3"}
+                    fill={markerColor}
+                  />
+                </svg>
+              </div>
+            </Marker>
+          )
         })}
 
         {/* Popup for selected marker */}
-        {(selectedFeature || selectedMarker) && (selectedFeature || selectedMarker).geometry?.type === 'Point' && (
-          <Popup
-            longitude={(selectedFeature || selectedMarker).geometry.coordinates[0]}
-            latitude={(selectedFeature || selectedMarker).geometry.coordinates[1]}
-            anchor="bottom"
-            offset={[0, -10]}
-            onClose={() => {
-              setSelectedMarker(null)
-              if (onMarkerSelect) {
-                onMarkerSelect(null)
-              }
-            }}
-            closeOnClick={false}
-            closeButton={true}
-            style={{ maxWidth: '400px', zIndex: 999 }}
-          >
-            <div className="popup-content">
-              {((selectedFeature || selectedMarker).properties?.name) && (
-                <h3 className="popup-title">{(selectedFeature || selectedMarker).properties.name}</h3>
-              )}
-              <table className="popup-table">
-                <tbody>
-                  {(() => {
-                    const props = (selectedFeature || selectedMarker).properties || {}
-                    const fieldsToShow = ['name', 'type', 'city', 'neighborhood', 'full_address', 'url']
-                    
-                    // Display labels mapping
-                    const displayLabels = {
-                      'name': 'Name',
-                      'type': 'Type',
-                      'city': 'City',
-                      'neighborhood': 'Neighborhood',
-                      'full_address': 'Address',
-                      'url': 'Website Link'
-                    }
-                    
-                    return fieldsToShow
-                      .map(fieldName => {
-                        // Find the property key (case-insensitive match)
-                        const propKey = Object.keys(props).find(
-                          key => key.toLowerCase() === fieldName.toLowerCase()
-                        )
-                        
-                        if (!propKey) return null
-                        
-                        const value = props[propKey]
-                        if (value === null || value === undefined || value === '') return null
-                        
-                        // Format the value
-                        let displayValue = value
-                        if (typeof value === 'object') {
-                          displayValue = JSON.stringify(value)
-                        } else {
-                          displayValue = String(value)
-                        }
-                        
-                        // Check if this is a URL field and make it clickable
-                        const isUrlField = fieldName.toLowerCase() === 'url'
-                        let valueContent = displayValue
-                        
-                        if (isUrlField) {
-                          // Ensure URL has protocol
-                          let url = displayValue.trim()
-                          if (!url.match(/^https?:\/\//i)) {
-                            url = 'https://' + url
-                          }
-                          valueContent = (
-                            <a 
-                              href={url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="popup-link"
-                            >
-                              {displayValue}
-                            </a>
+        {(selectedFeature || selectedMarker) && (() => {
+          const feature = selectedFeature || selectedMarker
+          const coords = getMarkerCoordinates(feature.geometry)
+          if (!coords || coords.length < 2) return null
+          
+          // Use overlapping features if available, otherwise use single feature
+          const featuresToShow = overlappingFeatures.length > 1 ? overlappingFeatures : [feature]
+          const currentFeature = featuresToShow[selectedOverlapIndex] || feature
+          const hasMultiple = overlappingFeatures.length > 1
+          
+          return (
+            <Popup
+              longitude={coords[0]}
+              latitude={coords[1]}
+              anchor="bottom"
+              offset={[0, -10]}
+              onClose={() => {
+                setSelectedMarker(null)
+                setOverlappingFeatures([])
+                setSelectedOverlapIndex(0)
+                if (onMarkerSelect) {
+                  onMarkerSelect(null)
+                }
+              }}
+              closeOnClick={false}
+              closeButton={true}
+              style={{ maxWidth: '400px', zIndex: 999 }}
+            >
+              <div className="popup-content">
+                {currentFeature.properties?.name && (
+                  <h3 className="popup-title">{currentFeature.properties.name}</h3>
+                )}
+                <table className="popup-table">
+                  <tbody>
+                    {(() => {
+                      const props = currentFeature.properties || {}
+                      const fieldsToShow = ['name', 'type', 'city', 'neighborhood', 'full_address', 'url']
+                      
+                      // Display labels mapping
+                      const displayLabels = {
+                        'name': 'Name',
+                        'type': 'Type',
+                        'city': 'City',
+                        'neighborhood': 'Neighborhood',
+                        'full_address': 'Address',
+                        'url': 'Website Link'
+                      }
+                      
+                      return fieldsToShow
+                        .map(fieldName => {
+                          // Find the property key (case-insensitive match)
+                          const propKey = Object.keys(props).find(
+                            key => key.toLowerCase() === fieldName.toLowerCase()
                           )
+                          
+                          if (!propKey) return null
+                          
+                          const value = props[propKey]
+                          if (value === null || value === undefined || value === '') return null
+                          
+                          // Format the value
+                          let displayValue = value
+                          if (typeof value === 'object') {
+                            displayValue = JSON.stringify(value)
+                          } else {
+                            displayValue = String(value)
+                          }
+                          
+                          // Check if this is a URL field and make it clickable
+                          const isUrlField = fieldName.toLowerCase() === 'url'
+                          let valueContent = displayValue
+                          
+                          if (isUrlField) {
+                            // Ensure URL has protocol
+                            let url = displayValue.trim()
+                            if (!url.match(/^https?:\/\//i)) {
+                              url = 'https://' + url
+                            }
+                            valueContent = (
+                              <a 
+                                href={url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="popup-link"
+                              >
+                                {displayValue}
+                              </a>
+                            )
+                          }
+                          
+                          return (
+                            <tr key={fieldName}>
+                              <td className="popup-label">{displayLabels[fieldName]}:</td>
+                              <td className="popup-value">{valueContent}</td>
+                            </tr>
+                          )
+                        })
+                        .filter(Boolean)
+                    })()}
+                  </tbody>
+                </table>
+                
+                {/* Show navigation at bottom if multiple features */}
+                {hasMultiple && (
+                  <div className="popup-navigation">
+                    <span className="popup-nav-counter">
+                      {selectedOverlapIndex + 1} / {featuresToShow.length}
+                    </span>
+                    <button
+                      className="popup-nav-button popup-nav-arrow"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        // Loop to next feature (wraps around to 0 when reaching the end)
+                        const newIndex = (selectedOverlapIndex + 1) % featuresToShow.length
+                        setSelectedOverlapIndex(newIndex)
+                        setSelectedMarker(featuresToShow[newIndex])
+                        if (onMarkerSelect) {
+                          onMarkerSelect(featuresToShow[newIndex])
                         }
-                        
-                        return (
-                          <tr key={fieldName}>
-                            <td className="popup-label">{displayLabels[fieldName]}:</td>
-                            <td className="popup-value">{valueContent}</td>
-                          </tr>
-                        )
-                      })
-                      .filter(Boolean)
-                  })()}
-                </tbody>
-              </table>
-            </div>
-          </Popup>
-        )}
+                      }}
+                      title={`Next (${selectedOverlapIndex + 1} / ${featuresToShow.length})`}
+                    >
+                      ›
+                    </button>
+                  </div>
+                )}
+              </div>
+            </Popup>
+          )
+        })()}
 
         {/* Map Legend */}
         <div className="map-legend">

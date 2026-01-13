@@ -32,7 +32,7 @@ function MetricsPanel({
   loading
 }) {
   // Calculate total spaces from filtered data
-  // When no filters are selected: shows total excluding Watertown, Hingham, and First Highland Management
+  // When no filters are selected: shows total excluding Watertown, Hingham, Salem, and First Highland Management
   // When filters are applied: shows count matching the selected filters (already excludes removed entries)
   const totalSpaces = useMemo(() => {
     // Verify data is an array before calculating length

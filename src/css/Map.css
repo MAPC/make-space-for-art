@@ -216,6 +216,50 @@
   color: #6b46c1;
 }
 
+.popup-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+}
+
+.popup-nav-button {
+  background: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  padding: 0;
+  line-height: 1;
+}
+
+.popup-nav-button:hover {
+  background: #357abd;
+}
+
+.popup-nav-arrow {
+  margin-left: auto;
+}
+
+.popup-nav-counter {
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  padding: 0 8px;
+}
+
 .map-style-control {
   position: absolute;
   top: 10px;
