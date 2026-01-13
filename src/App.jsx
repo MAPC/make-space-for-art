@@ -16,7 +16,18 @@ function App() {
     const loadData = async () => {
       try {
         const features = await fetchFeatureServiceData()
-        setData(features)
+        // Filter out Watertown, Hingham (by city), First Highland Management, and Hingham art space (by name)
+        const filteredFeatures = features.filter(feature => {
+          const city = feature.properties?.city || feature.properties?.City || ''
+          const cityUpper = city.toUpperCase().trim()
+          const name = feature.properties?.name || feature.properties?.Name || ''
+          const nameUpper = name.toUpperCase().trim()
+          return cityUpper !== 'WATERTOWN' && 
+                 nameUpper !== 'FIRST HIGHLAND MANAGEMENT' &&
+                 nameUpper !== 'HINGHAM' &&
+                 nameUpper !== 'SALEM'
+        })
+        setData(filteredFeatures)
         setLoading(false)
       } catch (error) {
         console.error('Error loading data:', error)
@@ -41,15 +52,17 @@ function App() {
     return 'unknown'
   }
 
-  // Filter data based on selections
+  // Filter data based on user selections (city, neighborhood, type)
+  // Note: data already excludes Watertown, Hingham, and First Highland Management
   const filteredData = useMemo(() => {
     return data.filter(feature => {
       const props = feature.properties || {}
-      const city = props.city || ''
-      const neighborhood = props.neighborhood || ''
+      // Handle case-insensitive city matching
+      const city = (props.city || props.City || '').trim()
+      const neighborhood = (props.neighborhood || props.Neighborhood || '').trim()
       
-      if (selectedCity && city !== selectedCity) return false
-      if (selectedNeighborhood && neighborhood !== selectedNeighborhood) return false
+      if (selectedCity && city.toUpperCase() !== selectedCity.toUpperCase()) return false
+      if (selectedNeighborhood && neighborhood.toUpperCase() !== selectedNeighborhood.toUpperCase()) return false
       
       // Filter by type if selected
       if (selectedType) {
@@ -64,9 +77,14 @@ function App() {
     })
   }, [data, selectedCity, selectedNeighborhood, selectedType])
 
-  // Get unique cities
+  // Get unique cities (excluding Watertown and Hingham)
   const cities = useMemo(() => 
-    [...new Set(data.map(f => f.properties?.city).filter(Boolean))].sort(),
+    [...new Set(data.map(f => f.properties?.city).filter(Boolean))]
+      .filter(city => {
+        const cityUpper = city.toUpperCase().trim()
+        return cityUpper !== 'WATERTOWN' && cityUpper !== 'HINGHAM'
+      })
+      .sort(),
     [data]
   )
 
@@ -109,6 +127,9 @@ function App() {
         </h1>
         <p className="app-subtitle">Securing Cultural Infrastructure in Boston, Cambridge & Somerville</p>
       </header>
+      <div className="data-warning-banner">
+        <strong>⚠️ Warning:</strong> This data is old and should not be considered an accurate source of truth.
+      </div>
       <div className="app-content">
         <div className="map-container">
           <Map 

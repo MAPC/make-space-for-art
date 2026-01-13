@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import Map, { Marker, Popup, Source, Layer, NavigationControl } from 'react-map-gl'
 import { fetchNeighborhoodData } from '../utils/arcgis'
 import 'mapbox-gl/dist/mapbox-gl.css'
-import './Map.css'
+import '../css/Map.css'
 
 function MapComponent({ data, loading, selectedFeature, onMarkerSelect, selectedCity, selectedNeighborhood }) {
   const [viewState, setViewState] = useState({

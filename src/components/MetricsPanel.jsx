@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
-import './MetricsPanel.css'
+import '../css/MetricsPanel.css'
 
 // Color mapping to match map marker colors
 // Colors are designed to meet WCAG AA contrast ratio (3:1) against white background
@@ -31,9 +31,17 @@ function MetricsPanel({
   onTypeChange,
   loading
 }) {
-  const totalSpaces = data.length
+  // Calculate total spaces from filtered data
+  // When no filters are selected: shows total excluding Watertown, Hingham, and First Highland Management
+  // When filters are applied: shows count matching the selected filters (already excludes removed entries)
+  const totalSpaces = useMemo(() => {
+    // Verify data is an array before calculating length
+    if (!Array.isArray(data)) return 0
+    return data.length
+  }, [data])
 
   // Calculate share of spaces by type (production, presentation, or both)
+  // Recalculates when data changes (after filtering)
   const typeData = useMemo(() => {
     let productionCount = 0
     let presentationCount = 0
@@ -65,6 +73,24 @@ function MetricsPanel({
 
     return result.sort((a, b) => b.value - a.value)
   }, [data])
+
+  // Calculate spaces count for selected city (recalculates when data or selectedCity changes)
+  const spacesInCity = useMemo(() => {
+    if (!selectedCity) return 0
+    return data.filter(f => {
+      const city = f.properties?.city || f.properties?.City || ''
+      return city === selectedCity
+    }).length
+  }, [data, selectedCity])
+
+  // Calculate spaces count for selected neighborhood (recalculates when data or selectedNeighborhood changes)
+  const spacesInNeighborhood = useMemo(() => {
+    if (!selectedNeighborhood) return 0
+    return data.filter(f => {
+      const neighborhood = f.properties?.neighborhood || f.properties?.Neighborhood || ''
+      return neighborhood === selectedNeighborhood
+    }).length
+  }, [data, selectedNeighborhood])
 
   return (
     <div className="metrics-panel">
@@ -128,18 +154,14 @@ function MetricsPanel({
         {selectedCity && (
           <div className="metric-card">
             <div className="metric-label">Spaces in {selectedCity}</div>
-            <div className="metric-value">
-              {data.filter(f => f.properties?.city === selectedCity).length}
-            </div>
+            <div className="metric-value">{loading ? '...' : spacesInCity}</div>
           </div>
         )}
 
         {selectedNeighborhood && (
           <div className="metric-card">
             <div className="metric-label">Spaces in {selectedNeighborhood}</div>
-            <div className="metric-value">
-              {data.filter(f => f.properties?.neighborhood === selectedNeighborhood).length}
-            </div>
+            <div className="metric-value">{loading ? '...' : spacesInNeighborhood}</div>
           </div>
         )}
 

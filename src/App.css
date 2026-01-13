@@ -41,6 +41,21 @@
   letter-spacing: 0.3px;
 }
 
+.data-warning-banner {
+  background: #fff3cd;
+  border-bottom: 2px solid #ffc107;
+  color: #856404;
+  padding: 12px 30px;
+  text-align: center;
+  font-size: 14px;
+  z-index: 999;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.data-warning-banner strong {
+  font-weight: 600;
+}
+
 .app-content {
   display: flex;
   flex: 1;
