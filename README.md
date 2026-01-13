@@ -10,9 +10,8 @@ Here is the project [introduction page](https://www.mapc.org/resource-library/ma
 - **Metrics Panel**: 20% panel displaying statistics, filters, and data visualizations
 - **City Highlighting**: Visual representation of city boundaries from Massachusetts GeoJSON data
 - **Neighborhood Layers**: Neighborhood boundaries for Boston, Cambridge, and Somerville
-- **Filtering**: Dropdown filters for cities and neighborhoods with dynamic neighborhood filtering
-- **Data Visualization**: Pie charts showing space types and review states
-- **Sortable Data Table**: Full-width collapsible table with sortable columns
+- **Filtering**: Dropdown filters for cities and neighborhoods with dynamic neighborhood filtering, and space type filtering
+- **Data Visualization**: Pie charts showing space types
 - **Marker Interaction**: Click markers to view detailed information in popups
 - **Map Controls**: Zoom controls and map style selector
 
@@ -20,7 +19,6 @@ Here is the project [introduction page](https://www.mapc.org/resource-library/ma
 
 - **Frontend**: React 19, Vite
 - **Mapping**: react-map-gl, Mapbox GL JS
-- **Data Visualization**: Recharts
 - **Backend**: Express.js (for API proxy and secure token management)
 - **Data Sources**: ArcGIS Feature Service, Massachusetts GeoJSON, Neighborhood Feature Services
 
@@ -119,4 +117,3 @@ All data is fetched dynamically and displayed on the interactive map with filter
 - **Interact with Map**: 
   - Click markers to view detailed information in popups
   - Use zoom controls to navigate the map
-- **Explore Data Table**: Expand the data table at the bottom to view all data, sort by columns, and click rows to highlight corresponding markers on the map
